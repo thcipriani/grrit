@@ -1,31 +1,45 @@
 #!/usr/bin/env python3
 #-*- coding: utf-8 -*-
+"""
+gerritcommentor.gerrit.api
+~~~~~~~~~~~~~~~~~~~
+
+"""
 
 import os
 import requests
 
-class GerritAuth(object):
+class Auth(object):
+    """
+    Simple object to hold auth info
+    """
     def __init__(self, url, user, token):
         self.url = url
         self.user = user
         self.token = token
 
-class GerritReview(object):
+class Revision(object):
+    """
+    Store info for gerrit revision
+    """
     def __init__(self, project, branch, change, revision):
         self.project = project
         self.branch = branch
         self.change = change
         if isinstance(revision, int):
             revision = str(revision)
-        self.revision = revision
+        self.number = revision
 
     def get_change(self):
         return '{}~{}~{}'.format(self.project, self.branch, self.change)
 
-class GerritComment(object):
-    def __init__(self, gerrit_auth, gerrit_review):
+class Review(object):
+    """
+    Actual api for gerrit review
+    """
+    def __init__(self, gerrit_auth, gerrit_revision):
         self.gerrit = gerrit_auth
-        self.review = gerrit_review
+        self.revision = gerrit_revision
 
     def get_url(self):
         """
@@ -35,9 +49,9 @@ class GerritComment(object):
             self.gerrit.url,
             'a',  # "a" is important -> authenticated
             'changes',
-            self.review.get_change(),
+            self.revision.get_change(),
             'revisions',
-            self.review.revision,
+            self.revision.number,
             'review'
         )
 
@@ -45,12 +59,10 @@ class GerritComment(object):
         """
         Take a ReviewInput object and post to gerrit review api
         """
-        session = requests.Session()
         auth = requests.auth.HTTPBasicAuth(self.gerrit.user, self.gerrit.token)
-        r = session.post(
+        return requests.post(
             self.get_url(),
             auth=auth,
             json=review_input.json(),
             headers={'Content-Type': 'application/json;charset=UTF-8'}
         )
-        return r
